@@ -1,0 +1,12 @@
+{
+  "name": "game-engine",
+  "version": "0.0.1",
+  "dependencies": {
+    "amqplib": "^1.0.3",
+    "chess.js": "^1.4.0",
+    "shared": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/amqplib": "^0.10.8"
+  }
+}

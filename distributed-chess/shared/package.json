@@ -1,0 +1,8 @@
+{
+  "name": "shared",
+  "version": "0.0.1",
+  "exports": {
+    "./hash": "./hash.ts",
+    "./types": "./types.ts"
+  }
+}

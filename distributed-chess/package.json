@@ -1,0 +1,19 @@
+{
+  "name": "distributed-chess",
+  "version": "0.0.1",
+  "workspaces": [
+    "services/*",
+    "shared"
+  ],
+  "scripts": {
+    "dev:gateway": "bun run services/gateway/src/server.ts",
+    "dev:engine0": "cross-env PARTITION=0 bun run services/game-engine/src/consumer.ts",
+    "dev:engine1": "cross-env PARTITION=1 bun run services/game-engine/src/consumer.ts",
+    "dev:engine2": "cross-env PARTITION=2 bun run services/game-engine/src/consumer.ts",
+    "dev:leaderboard": "bun run services/leaderboard/src/consumer.ts"
+  },
+  "devDependencies": {
+    "bun-types": "^1.3.11",
+    "cross-env": "^10.1.0"
+  }
+}
