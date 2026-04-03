@@ -1,0 +1,21 @@
+ws.ts — 4 fixes:
+
+Board orientation bug — room already existed when black player joined via WS, so playerColors never had black added. Now always checks and adds missing black player to the map even if room exists
+State restore on refresh — JOINED response now includes fen (replayed from stored moves), status, and winner so the frontend can restore the full board state on reconnect/refresh
+Room cleanup on disconnect — previously deleted the whole room when any player disconnected, killing the other player's game. Now only removes the disconnected player from the room; room is only deleted when both players are gone
+Completed game join — sends back winner/status in JOINED so a refreshed player on a finished game sees the correct result immediately
+
+engine.ts — 1 fix:
+
+Winner always null bug — state.whitePlayer was null on the first call because setPlayers and state.chess.move happened in the same call. Now falls back to event.whitePlayer/event.blackPlayer so winner is never null
+
+consumer.ts — 1 fix:
+
+History always "In Progress" — added an else safety branch that still publishes GAME_OVER and marks MongoDB completed even when result is unclear, so history never gets stuck
+
+GamePage.tsx — 4 fixes:
+
+Board state restore on refresh — HTTP response now replays data.moves to reconstruct the Chess position before WS connects
+Completed game restore — if data.status === 'completed' on load, sets gameOver and gameOverMessage immediately without needing WS
+Color override bug — JOINED now sets color from server (which is authoritative), and WS doesn't connect at all for completed games
+Game Over with no popup — GAME_OVER handler now also handles data.winner === null gracefully, and GAME_UPDATE sets a fallback message
