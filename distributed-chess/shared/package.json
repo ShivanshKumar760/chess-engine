@@ -1,8 +1,14 @@
 {
   "name": "shared",
   "version": "0.0.1",
+  "dependencies": {
+    "mongoose": "^8.13.2"
+  },
   "exports": {
     "./hash": "./hash.ts",
-    "./types": "./types.ts"
+    "./types": "./types.ts",
+    "./db": "./db.ts",
+    "./models/User": "./models/User.ts",
+    "./models/Game": "./models/Game.ts"
   }
 }

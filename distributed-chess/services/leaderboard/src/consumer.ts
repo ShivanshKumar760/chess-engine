@@ -1,7 +1,9 @@
 import amqp from "amqplib";
-import { updateScore } from "./leaderboard";
+import { connectDB } from "shared/db";
+import { Game } from "shared/models/Game";
+import { updateScore, updateDraw } from "./leaderboard";
 
-// FIX (Bug 7): Retry connection with backoff
+// Retry connection with backoff
 const connectWithRetry = async (retries = 5, delay = 3000) => {
   for (let i = 0; i < retries; i++) {
     try {
@@ -15,6 +17,9 @@ const connectWithRetry = async (retries = 5, delay = 3000) => {
 };
 
 const start = async () => {
+  // Connect to MongoDB
+  await connectDB();
+
   const conn = await connectWithRetry();
   const ch = await conn.createChannel();
 
@@ -26,15 +31,31 @@ const start = async () => {
 
   ch.consume(
     q.queue,
-    (msg) => {
+    async (msg) => {
       if (!msg) return;
-      const event = JSON.parse(msg.content.toString());
 
-      if (event.type === "GAME_OVER") {
-        console.log(`Game over in ${event.gameId} — winner: ${event.winner}`);
-        updateScore(event.winner);
+      try {
+        const event = JSON.parse(msg.content.toString());
+
+        if (event.type === "GAME_OVER") {
+          console.log(
+            `Game over in ${event.gameId} — winner: ${event.winner}`
+          );
+
+          if (event.winner === "draw") {
+            // For draws, look up both players from the game document
+            const game = await Game.findOne({ gameId: event.gameId });
+            if (game && game.whitePlayer && game.blackPlayer) {
+              await updateDraw(game.whitePlayer, game.blackPlayer);
+            }
+          } else {
+            // Checkmate — update winner and loser
+            await updateScore(event.winner, event.loser);
+          }
+        }
+      } catch (err) {
+        console.error("Error processing leaderboard event:", err);
       }
-      // Exclusive fanout queues auto-ack is fine here; leaderboard is not critical path
     },
     { noAck: true }
   );

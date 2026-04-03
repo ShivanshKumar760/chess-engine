@@ -1,5 +1,8 @@
 import amqp from "amqplib";
+import { connectDB } from "shared/db";
+import { Game } from "shared/models/Game";
 import { processMove } from "./engine";
+import { removeGame } from "./state";
 
 const PARTITION = process.env.PARTITION || "0";
 
@@ -16,6 +19,8 @@ const connectWithRetry = async (retries = 5, delay = 3000) => {
 };
 
 const start = async () => {
+  await connectDB();
+
   const conn = await connectWithRetry();
   const ch = await conn.createChannel();
 
@@ -27,7 +32,7 @@ const start = async () => {
 
   ch.consume(
     queue,
-    (msg) => {
+    async (msg) => {
       if (!msg) return;
 
       try {
@@ -35,7 +40,7 @@ const start = async () => {
         const result = processMove(event);
 
         if (result.error) {
-          ch.ack(msg); // invalid move — discard, never requeue
+          ch.ack(msg);
           return;
         }
 
@@ -52,25 +57,55 @@ const start = async () => {
           )
         );
 
-        if (result.gameOver && result.winner) {
-          ch.publish(
-            "chess.events",
-            "",
-            Buffer.from(
-              JSON.stringify({
-                type: "GAME_OVER",
-                gameId: event.gameId,
-                winner: result.winner,
-              })
-            )
-          );
+        if (result.gameOver) {
+          if (result.isCheckmate && result.winner && result.loser) {
+            ch.publish(
+              "chess.events",
+              "",
+              Buffer.from(
+                JSON.stringify({
+                  type: "GAME_OVER",
+                  gameId: event.gameId,
+                  winner: result.winner,
+                  loser: result.loser,
+                  winnerColor: result.winnerColor,
+                  finalFen: result.fen,
+                })
+              )
+            );
+
+            await Game.findOneAndUpdate(
+              { gameId: event.gameId },
+              { status: "completed", winner: result.winner, finalFen: result.fen }
+            );
+          } else if (result.isDraw) {
+            ch.publish(
+              "chess.events",
+              "",
+              Buffer.from(
+                JSON.stringify({
+                  type: "GAME_OVER",
+                  gameId: event.gameId,
+                  winner: "draw",
+                  loser: null,
+                  winnerColor: null,
+                  finalFen: result.fen,
+                })
+              )
+            );
+
+            await Game.findOneAndUpdate(
+              { gameId: event.gameId },
+              { status: "completed", winner: "draw", finalFen: result.fen }
+            );
+          }
+
+          removeGame(event.gameId);
         }
 
         ch.ack(msg);
       } catch (err) {
         console.error("Error processing move:", err);
-        // ✅ ACK (discard) instead of NACK — prevents infinite requeue loops
-        // chess.js v1.x throws on illegal moves, which would loop forever with nack
         ch.ack(msg);
       }
     },

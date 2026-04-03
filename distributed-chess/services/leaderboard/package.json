@@ -3,6 +3,7 @@
   "version": "0.0.1",
   "dependencies": {
     "amqplib": "^1.0.3",
+    "mongoose": "^8.13.2",
     "shared": "workspace:*"
   },
   "devDependencies": {

@@ -4,6 +4,7 @@
   "dependencies": {
     "amqplib": "^1.0.3",
     "chess.js": "^1.4.0",
+    "mongoose": "^8.13.2",
     "shared": "workspace:*"
   },
   "devDependencies": {
