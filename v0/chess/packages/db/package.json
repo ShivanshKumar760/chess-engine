@@ -1,0 +1,17 @@
+{
+  "name": "@repo/db",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "index.ts",
+  "license": "MIT",
+  "exports": {
+    ".": "./index.ts",
+    "./game-store": "./game-store.ts"
+  },
+  "devDependencies": {
+    "@repo/typescript-config": "workspace:*"
+  },
+  "dependencies": {
+    "ioredis": "^5.10.1"
+  }
+}
